@@ -10,6 +10,9 @@ Node notify daemon.
 ## Layout
 
 - `src/` — extension sources ; `test/` — `node:test` unit tests.
+- `schemas/` + `docs/contract.md` — the versioned contract of the JSONL
+  files the extension reads and writes (queue, inbound, actions, outbound).
+  The doc's example lines are validated against the schemas by `npm test`.
 - `bin/notif` (`bin/notif.exe` on Windows) — the [notif](https://github.com/meitogi/notifier)
   binary. It is fetched at packaging time and never committed. The
   `notify.notifPath` setting overrides it, for testing a hand-built binary.

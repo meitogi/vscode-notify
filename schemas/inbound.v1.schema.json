@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/meitogi/vscode-notify/schemas/inbound.v1.schema.json",
+  "title": "Claude extension inbound line",
+  "description": "One line of .devcontainer/tmp/logs/claude-code-vscode-ext-inbound.jsonl, appended by the patched Claude Code extension (user-action-observer.py) for every webview -> extension message. A line without `v` is today's format; `v` is 1 when present. The file is wiped at container start.",
+  "type": "object",
+  "required": ["ts", "source", "sessionId", "type", "payload"],
+  "properties": {
+    "v": { "const": 1 },
+    "ts": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$", "description": "ISO-8601 UTC." },
+    "source": { "const": "user-action" },
+    "sessionId": { "type": ["string", "null"], "description": "Claude Code session id when the message carries or implies one, else null." },
+    "channelId": { "type": ["string", "null"], "description": "Webview channel id, or the request id for request-shaped messages." },
+    "pid": { "type": ["integer", "null"], "description": "Claude process pid when the observer could find it." },
+    "type": { "type": "string", "minLength": 1, "description": "The message type. Known: io_message, response, request, launch_claude, interrupt_claude, close_channel, cancel_request. Consumers ignore unknown types." },
+    "payload": { "type": "object", "description": "The webview message verbatim. Consumers read payload.response.type / payload.response.result.behavior (response), payload.message.type (io_message), payload.resume (launch_claude)." }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/meitogi/vscode-notify/schemas/outbound.v1.schema.json",
+  "title": "Claude extension outbound command",
+  "description": "One line of .devcontainer/tmp/logs/claude-code-vscode-ext-outbound.jsonl, appended by the notification consumer (today the daemon's notify-app.js writeAllowOutbound) and polled by the patched Claude Code extension (outbound-action-injector.py), which replays it as a simulated click on the permission prompt. A line without `v` is today's format; `v` is 1 when present. The file is wiped at container start.",
+  "type": "object",
+  "required": ["cmd", "sessionId", "requestId", "behavior"],
+  "properties": {
+    "v": { "const": 1 },
+    "cmd": { "const": "tool_permission_response" },
+    "sessionId": { "type": "string", "minLength": 1, "description": "The queue line's sid." },
+    "requestId": { "type": "string", "minLength": 1, "description": "The queue line's tool_use_id (the extension's permission requestId)." },
+    "behavior": { "type": "string", "enum": ["allow", "deny"] },
+    "updatedInput": { "type": "object", "description": "Tool input to apply. Defaults to {} on the reader side. The writer passes the queue line's tool_input through." },
+    "updatedPermissions": { "type": "array", "description": "Permission rule updates. Defaults to [] on the reader side. Always [] today." },
+    "message": { "type": "string", "description": "Deny reason. Read only when behavior is deny; the reader defaults it to \"denied\"." }
+  },
+  "additionalProperties": false
+}

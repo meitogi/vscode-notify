@@ -12,3 +12,5 @@ node_modules/**
 tsconfig.json
 **/*.ts
 package-lock.json
+schemas/**
+docs/**

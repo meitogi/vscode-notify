@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/meitogi/vscode-notify/schemas/actions.v1.schema.json",
+  "title": "notif callback line",
+  "description": "One line of .devcontainer/tmp/logs/notif-actions.jsonl, appended by the notif binary (CallbackPayload in notif-core callback.rs) when the user interacts with a banner sent with --on-action ...:file:<path>. A line without `v` is today's format; `v` is 1 when present.",
+  "type": "object",
+  "required": ["notif_id", "event", "sender", "title", "body", "ts"],
+  "properties": {
+    "v": { "const": 1 },
+    "notif_id": { "type": "string", "minLength": 1, "description": "The --id the banner was sent with (the queue line's notif_id)." },
+    "event": { "type": "string", "pattern": "^(click|dismiss|timeout|action:.+)$", "description": "click | dismiss | timeout | action:<label>. Only action:Allow is acted on today." },
+    "sender": { "type": "string" },
+    "title": { "type": "string" },
+    "body": { "type": "string" },
+    "ts": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$", "description": "ISO-8601 UTC." }
+  },
+  "additionalProperties": false
+}

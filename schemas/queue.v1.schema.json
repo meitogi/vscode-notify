@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/meitogi/vscode-notify/schemas/queue.v1.schema.json",
+  "title": "Notify queue line",
+  "description": "One line of .devcontainer/tmp/notify/<sid>.jsonl, appended by the notify-queue hook (hook.js, tail-cancel.js). A line without `v` is today's format and is read as-is; `v` is 1 when present. `hello` is the only event that requires `v`. Every event is closed: a property not listed for it is an error.",
+  "type": "object",
+  "required": [
+    "ts",
+    "sid",
+    "event"
+  ],
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "ts": {
+      "$ref": "#/$defs/iso8601"
+    },
+    "sid": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Claude Code session id (UUID). Also the queue file name."
+    },
+    "event": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "stop",
+        "notification",
+        "permission_request",
+        "user_replied",
+        "tool_started",
+        "tool_finished",
+        "tool_cancelled"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/hello"
+    },
+    {
+      "$ref": "#/$defs/stop"
+    },
+    {
+      "$ref": "#/$defs/notification"
+    },
+    {
+      "$ref": "#/$defs/permission_request"
+    },
+    {
+      "$ref": "#/$defs/user_replied"
+    },
+    {
+      "$ref": "#/$defs/tool_started"
+    },
+    {
+      "$ref": "#/$defs/tool_finished"
+    },
+    {
+      "$ref": "#/$defs/tool_cancelled"
+    }
+  ],
+  "unevaluatedProperties": false,
+  "$defs": {
+    "iso8601": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+      "description": "ISO-8601 UTC as written by Date#toISOString()."
+    },
+    "envelope": {
+      "type": "object",
+      "description": "Fields hook.js adds to every notification event. Each is optional because older lines (before v0.2) and tail-cancel.js lines lack them.",
+      "properties": {
+        "sender": {
+          "type": "string",
+          "description": "notif sender key. Always \"default\" today."
+        },
+        "notif_id": {
+          "type": "string",
+          "pattern": "^[a-z_]+-[0-9a-f]{8}-[0-9]+$",
+          "description": "<event>-<sid8>-<epoch ms>; the --id of the banner, used by notif remove and echoed in notif-actions."
+        },
+        "session_name": {
+          "type": "string",
+          "description": "Claude Code session title or slug. Absent when no transcript."
+        },
+        "launchUrl": {
+          "type": "string",
+          "pattern": "^vscode://",
+          "description": "vscode-remote URL of the container window. Absent before VS Code wrote a history file."
+        },
+        "focused": {
+          "type": "boolean",
+          "description": "Host window focus at the last permission cycle. Absent when unknown."
+        }
+      }
+    },
+    "hello": {
+      "type": "object",
+      "description": "Producer liveness. Written once per SessionStart (startup, resume, clear, compact). Carries no notification envelope.",
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "event": {
+          "const": "hello"
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The producing skill, \"notify-queue\"."
+        },
+        "producer_version": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The producer's version: the devcontainer-sandbox image version read from /etc/devcontainer-base-version, or \"unknown\"."
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The agent the producer observes, \"claude-code\"."
+        }
+      },
+      "required": [
+        "v",
+        "event",
+        "producer",
+        "producer_version",
+        "agent"
+      ]
+    },
+    "stop": {
+      "type": "object",
+      "$ref": "#/$defs/envelope",
+      "properties": {
+        "event": {
+          "const": "stop"
+        },
+        "last_message_excerpt": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Recap line or first usable line of the last assistant message, unicode escapes decoded."
+        }
+      },
+      "required": [
+        "event",
+        "last_message_excerpt"
+      ]
+    },
+    "notification": {
+      "type": "object",
+      "$ref": "#/$defs/envelope",
+      "properties": {
+        "event": {
+          "const": "notification"
+        },
+        "notification_type": {
+          "type": "string",
+          "description": "idle_prompt | permission_prompt | elicitation_dialog, or any other value Claude Code emits. Consumers flatten the event into this type and treat unknown values as unmapped."
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "event",
+        "message"
+      ]
+    },
+    "permission_request": {
+      "type": "object",
+      "$ref": "#/$defs/envelope",
+      "properties": {
+        "event": {
+          "const": "permission_request"
+        },
+        "tool_use_id": {
+          "type": "string",
+          "description": "The VS Code extension's permission requestId (32 hex today), read from pending-perms. Absent when no match; the consumer then shows no Allow button."
+        },
+        "tool_name": {
+          "type": "string"
+        },
+        "tool_input": {
+          "type": "object",
+          "description": "The tool input verbatim. Rendering is the consumer's job."
+        }
+      },
+      "required": [
+        "event",
+        "tool_name"
+      ]
+    },
+    "user_replied": {
+      "type": "object",
+      "$ref": "#/$defs/envelope",
+      "properties": {
+        "event": {
+          "const": "user_replied"
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "tool_started": {
+      "type": "object",
+      "$ref": "#/$defs/envelope",
+      "properties": {
+        "event": {
+          "const": "tool_started"
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "tool_finished": {
+      "type": "object",
+      "$ref": "#/$defs/envelope",
+      "properties": {
+        "event": {
+          "const": "tool_finished"
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "tool_cancelled": {
+      "type": "object",
+      "$ref": "#/$defs/envelope",
+      "description": "Written by tail-cancel.js when the transcript shows the user cancelled a tool use. Today it carries only ts, sid, event.",
+      "properties": {
+        "event": {
+          "const": "tool_cancelled"
+        }
+      },
+      "required": [
+        "event"
+      ]
+    }
+  }
+}
