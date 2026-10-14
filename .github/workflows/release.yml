@@ -1,0 +1,70 @@
+name: release
+
+# Tag v<version> → one platform-specific VSIX per target, each bundling the
+# matching released notif binary → draft GitHub Release.
+# Needs the Actions variable NOTIF_RELEASE_TAG and the asset table in
+# scripts/fetch-notif.sh ; until both are filled the package jobs fail with
+# an explicit message (see that script's header).
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches package.json version
+        run: |
+          expected="v$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_NAME" != "$expected" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match package.json version ($expected)"
+            exit 1
+          fi
+
+  package:
+    needs: guard
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [darwin-arm64, darwin-x64, win32-x64, win32-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Fetch notif
+        run: scripts/fetch-notif.sh ${{ matrix.target }}
+        env:
+          NOTIF_RELEASE_TAG: ${{ vars.NOTIF_RELEASE_TAG }}
+          GH_TOKEN: ${{ github.token }}
+      - name: Package
+        run: npx vsce package --target ${{ matrix.target }} -o vscode-notify-${{ matrix.target }}.vsix
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.target }}
+          path: vscode-notify-${{ matrix.target }}.vsix
+          if-no-files-found: error
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: vsix-*
+          merge-multiple: true
+          path: dist
+      - name: Draft release
+        run: gh release create "$GITHUB_REF_NAME" --draft --verify-tag --title "$GITHUB_REF_NAME" dist/*.vsix
+        env:
+          GH_TOKEN: ${{ github.token }}

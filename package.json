@@ -1,0 +1,46 @@
+{
+  "name": "vscode-notify",
+  "displayName": "Notify",
+  "description": "Desktop notifications for Claude Code sessions running in a Dev Container.",
+  "version": "0.0.1",
+  "publisher": "local",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/meitogi/vscode-notify"
+  },
+  "engines": {
+    "vscode": "^1.120.0"
+  },
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/src/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Notify",
+      "properties": {
+        "notify.notifPath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to a hand-built notif binary, for testing only. Leave empty to use the binary bundled with the extension."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -p . -w",
+    "test": "tsc -p . && node --test 'out/test/*.test.js'",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@types/vscode": "1.120.0",
+    "@vscode/vsce": "4.0.0",
+    "typescript": "7.0.2"
+  }
+}
