@@ -54,11 +54,14 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
 gh release download "$tag" -R "$NOTIF_REPO" -p "$asset" -p SHA256SUMS -D "$work"
-if ! grep -q "  \*\?$asset\$" "$work/SHA256SUMS"; then
+# Exact name match on either sha256sum line format : "<hash>  <name>" (text)
+# or "<hash> *<name>" (binary).
+sum_line="$(awk -v a="$asset" '{ n = substr($0, 66); sub(/^[ *]/, "", n) } n == a' "$work/SHA256SUMS")"
+if [ -z "$sum_line" ]; then
   echo "::error::$asset is not listed in SHA256SUMS of $NOTIF_REPO $tag" >&2
   exit 1
 fi
-(cd "$work" && grep "  \*\?$asset\$" SHA256SUMS | sha256sum -c -)
+(cd "$work" && printf '%s\n' "$sum_line" | sha256sum -c -)
 echo "checksum OK : $asset"
 
 case "$target" in
